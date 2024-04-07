@@ -15,7 +15,7 @@
     "register": "node src/register.js"
   },
   "keywords": [],
-  "author": "Kotaro Chikuba <miz404@gmail.com>",
+  "author": "Hashory",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.18.0",
