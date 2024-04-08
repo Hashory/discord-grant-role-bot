@@ -21,7 +21,7 @@
     "@discordjs/builders": "^1.7.0",
     "discord-interactions": "^3.4.0",
     "discord.js": "^14.14.1",
-    "itty-router": "^4.0.13",
+    "itty-router": "^5.0.9",
     "ky": "^1.2.3"
   },
   "devDependencies": {
