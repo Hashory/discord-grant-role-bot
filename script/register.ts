@@ -1,4 +1,4 @@
-import commands from "../src/commands.json";
+import commands from "../src/commands.json" with {type: "json"};
 import dotenv from 'dotenv';
 import process from 'node:process';
 

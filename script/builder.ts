@@ -7,25 +7,40 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const CLAUDE_COMMAND = new SlashCommandBuilder()
-  .setName('claude')
-  .setDescription('Chat to Claude3 AI')
+export const CREATE_SET_ROLE_MESSAGE = new SlashCommandBuilder()
+  .setName('create-set-role-message')
+  .setDescription('Create a message to grant the role. Max: 5 roles.')
   .addStringOption(option =>
-    option.setName('input')
-      .setDescription('The text to send to the AI')
+    option.setName('message')
+      .setDescription('The message to send')
       .setRequired(true)
   )
-  .toJSON();
-
-export const CLAUDE_PLANE_COMMAND = new SlashCommandBuilder()
-  .setName('claude-plane')
-  .setDescription('Chat to Claude3 AI')
-  .addStringOption(option =>
-    option.setName('input')
-      .setDescription('The text to send to the AI')
+  .addRoleOption(option =>
+    option.setName('role1')
+      .setDescription('The role to grant 1')
       .setRequired(true)
+  )
+  .addRoleOption(option =>
+    option.setName('role2')
+      .setDescription('The role to grant 2')
+      .setRequired(false)
+  )
+  .addRoleOption(option =>
+    option.setName('role3')
+      .setDescription('The role to grant 3')
+      .setRequired(false)
+  )
+  .addRoleOption(option =>
+    option.setName('role4')
+      .setDescription('The role to grant 4')
+      .setRequired(false)
+  )
+  .addRoleOption(option =>
+    option.setName('role5')
+      .setDescription('The role to grant 5')
+      .setRequired(false)
   )
   .toJSON();
 
 const outputPath = join(__dirname, '../src', 'commands.json');
-await fs.writeFile(outputPath, JSON.stringify({ CLAUDE_COMMAND, CLAUDE_PLANE_COMMAND }, null, 2));
+await fs.writeFile(outputPath, JSON.stringify({ CREATE_SET_ROLE_MESSAGE }, null, 2));

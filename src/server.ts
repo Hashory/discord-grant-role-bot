@@ -1,46 +1,13 @@
-import AntrophicAI from '@anthropic-ai/sdk';
-import {
-  InteractionResponseType,
-  InteractionType,
-  verifyKey,
-} from 'discord-interactions';
-import commands from './commands.json';
+import {verifyKey} from 'discord-interactions';
+import { ApplicationCommandType, APIMessageApplicationCommandInteraction,APIMessageComponentInteraction, APIInteraction, ButtonStyle, InteractionType, InteractionResponseType, APIGuild, ApplicationCommandOptionType } from 'discord-api-types/v10';
+import { ActionRowBuilder, ButtonBuilder } from '@discordjs/builders';
+import ky from 'ky';
 
 type Env = {
   DISCORD_PUBLIC_KEY: string; // public key for verifying requests
   DISCORD_APPLICATION_ID: string; // application id for oauth
-  ANTHROPIC_API_KEY: string; // anthropic api key
+  DISCORD_TOKEN: string; // bot token
 };
-
-const OPUS_MODEL = 'claude-3-opus-20240229';
-const HAIKU_MODEL = 'claude-3-haiku-20240307';
-
-const CLAUDE_SYSTEM_PROMPT = `
-- あなたの名前はクラウデで、一般的な中年男性です。
-- あなたは自分のことをFF7のクラウドだと思いこんでおり、クールなキャラのクラウドになりきって答えます
-- ただし、質問の意図を重視して、質問者が知識を求めているのが自明な場合は必要以上にクラウドである設定に拘らないでください
-- 回答する内容の正確性に自信がないとき、またはFF7やクラウドに関する質問を受けたときは、幻覚を見ているロールプレイをしてください
-- 幻覚を見ているなどと直接言及せずに、魔晄中毒者としてバリエーション豊かに婉曲に表現してください。
-- 一般的な質問では口調だけクラウドになりきって答えてください。FF7に関係ない一般的な質問に対しては、幻覚や魔晄中毒者としてのロールプレイは不要です。
-- 詳細な情報を求められない限り質問には簡潔に答えてください。可能な限り400文字以内で返答してください
-
-以下、クラウドの台詞の例ですが、過度に真似る必要はありません
-
-あんたをそんけいしていたのに……あこがれていたのに……
-おまえをイヌ質にしてやる！
-興味ないね
-ここに女装に必要ななにかがある。俺にはわかるんだ
-しかも無料でだ！
-もう幻想はいらない‥‥‥。俺は俺の現実を生きる。
-元ソルジャーをなめるな。
-やっぱりおれたちは自分のために戦っているんだ
-指先がチリチリする。口の中はカラカラだ。目の奥が熱いんだ！
-`;
-
-const PLANE_SYSTEM_PROMPT = `
-- 詳細な情報を求められない限り、質問には簡潔に答えてください。
-`;
-
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
@@ -50,114 +17,113 @@ export default {
     const { isValid, interaction } = await verifyDiscordRequest(
       request,
       env,
-    );
+    ) as { isValid: boolean; interaction: APIInteraction }
     if (!isValid || !interaction) {
       return new Response('Bad request signature.', { status: 401 });
     }
-    if (interaction.type === InteractionType.PING) {
-      return Response.json({ type: InteractionResponseType.PONG });
+    if (interaction.type === InteractionType.Ping) {
+      return Response.json({ type: InteractionResponseType.Pong });
     }
-    if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    if (interaction.type === InteractionType.ApplicationCommand && interaction.data.type === ApplicationCommandType.ChatInput) {
       // Most user commands will come as `APPLICATION_COMMAND`.
-      switch (interaction.data.name.toLowerCase()) {
-        case commands.CLAUDE_COMMAND.name.toLowerCase(): {
-          const message = interaction.data.options[0].value as string;
-          ctx.waitUntil(handleDeferredInteractionStreamly(HAIKU_MODEL, CLAUDE_SYSTEM_PROMPT, message, interaction.token, env));
+      interaction as APIMessageApplicationCommandInteraction;
+
+      function isValidOption(option: any): option is { value: string } {
+        return option && typeof option.value === 'string';
+      }
+
+      const guildId = interaction.guild_id;
+      const option = interaction.data.options ? interaction.data.options[0] : null;
+      const message = isValidOption(option) ? option.value : 'No message';
+
+      // get role data
+      const guildData: APIGuild[] = await ky.get(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
+            }
+          }).json();
+
+      const buttons = interaction.data.options?.filter((option) => option.type === ApplicationCommandOptionType.Role)
+        .map((option) => {
+          const optionValue = isValidOption(option) ? option.value : 'No Role Value'
+
+          const roleName = guildData.filter((role) => {
+            role.id === optionValue
+          })[0].name;
+          return new ButtonBuilder()
+            .setCustomId(optionValue)
+            .setLabel(roleName)
+            .setStyle(ButtonStyle.Primary);
+        });
+      
+      return Response.json({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: message,
+          components: [
+            new ActionRowBuilder().addComponents(buttons ? buttons : []).toJSON(),
+          ],
+        },
+      });
+    }
+    if(interaction.type === InteractionType.MessageComponent) {
+      // Grant and Remove role
+      interaction as APIMessageComponentInteraction;
+
+      const roleId = interaction.data.custom_id as string;
+      const user = interaction.member?.user;
+      const guildId = interaction.guild_id;
+      const token = interaction.token;
+
+      // if not, grant the role
+      try {
+        if(!interaction.member?.roles.includes(roleId)) {
+          // grant the role
+          await ky.put(`https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
+            }
+          });
+
           return Response.json({
-            type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+              content: `Role <@&${roleId}> granted to <@!${user?.id}>.`,
+              flags: 64,
+            },
+          });
+        } else {
+          // remove the role
+          await ky.delete(`https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
+            }
+          });
+          return Response.json({
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+              content: `Role <@&${roleId}> removed from <@!${user?.id}>`,
+              flags: 64,
+            },
           });
         }
-        case commands.CLAUDE_PLANE_COMMAND.name.toLowerCase(): {
-          const message = interaction.data.options[0].value as string;
-          ctx.waitUntil(handleDeferredInteractionStreamly(OPUS_MODEL, PLANE_SYSTEM_PROMPT, message, interaction.token, env));
-          return Response.json({
-            type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
-          });
-        }
-        default:
-          return Response.json({ error: 'Unknown Type' }, { status: 400 });
+      } catch (e) {
+        console.error(e);
+        return Response.json({
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            content: `An error has occurred.`,
+            flags: 64,
+          },
+        });
       }
     }
     return Response.json({ error: 'Unknown Type' }, { status: 400 });
   },
 };
-
-async function handleDeferredInteractionStreamly(
-  model: typeof HAIKU_MODEL | typeof OPUS_MODEL,
-  system: string,
-  message: string,
-  token: string,
-  env: Env
-) {
-  const startedAt = Date.now();
-  const client = new AntrophicAI({
-    apiKey: env.ANTHROPIC_API_KEY,
-  });
-
-  const prefixed = message.split('\n').map((line) => `> ${line}`).join('\n');
-
-  const endpoint = `https://discord.com/api/v10/webhooks/${env.DISCORD_APPLICATION_ID}/${token}`;
-  await fetch(endpoint, {
-    method: "POST",
-    body: JSON.stringify({
-      content: `${prefixed}\n\n(考え中)`,
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    }
-  });
-
-  const patch_endpoint = `https://discord.com/api/v10/webhooks/${env.DISCORD_APPLICATION_ID}/${token}/messages/@original`;
-
-  let current = '';
-  const stream = client.messages.stream({
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: message }
-        ]
-      },
-    ],
-    model: model,
-    max_tokens: 400,
-    system,
-  }).on('text', (text) => {
-    current += text;
-  });
-
-  const update = async (content: string) => {
-    await fetch(patch_endpoint, {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: content,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      }
-    });
-  }
-
-  const intervalId = setInterval(async () => {
-    update(`${prefixed}\n\n${current}\n(考え中)`);
-  }, 5000);
-
-  let ended = false;
-  await Promise.allSettled([
-    stream.finalMessage().then(async (res) => {
-      ended = true;
-      clearInterval(intervalId);
-      await update(`${prefixed}\n\n${res.content[0].text}`);
-    }),
-    new Promise<void>((resolve) => setTimeout(async () => {
-      if (ended) return;
-      stream.abort();
-      clearInterval(intervalId);
-      await update(`${prefixed}\n\n${current}\n[timeout:${Date.now() - startedAt}ms]`);
-      resolve();
-    }, 27000)),
-  ]);
-}
 
 async function verifyDiscordRequest(request: Request, env: Env) {
   const signature = request.headers.get('x-signature-ed25519');
@@ -172,4 +138,3 @@ async function verifyDiscordRequest(request: Request, env: Env) {
   }
   return { interaction: JSON.parse(body), isValid: true };
 }
-
