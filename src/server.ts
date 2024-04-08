@@ -68,9 +68,9 @@ export default {
             ? option.value
             : 'No Role Value';
 
-          const roleName = guildData.filter((role) => {
-            role.id === optionValue;
-          })[0].name;
+          const roleName = guildData.filter(
+            (role) => role.id === optionValue,
+          )[0].name;
           return new ButtonBuilder()
             .setCustomId(optionValue)
             .setLabel(roleName)
