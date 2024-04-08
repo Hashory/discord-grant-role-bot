@@ -1,5 +1,15 @@
-import {verifyKey} from 'discord-interactions';
-import { ApplicationCommandType, APIMessageApplicationCommandInteraction,APIMessageComponentInteraction, APIInteraction, ButtonStyle, InteractionType, InteractionResponseType, APIGuild, ApplicationCommandOptionType } from 'discord-api-types/v10';
+import { verifyKey } from 'discord-interactions';
+import {
+  ApplicationCommandType,
+  APIMessageApplicationCommandInteraction,
+  APIMessageComponentInteraction,
+  APIInteraction,
+  ButtonStyle,
+  InteractionType,
+  InteractionResponseType,
+  APIGuild,
+  ApplicationCommandOptionType,
+} from 'discord-api-types/v10';
 import { ActionRowBuilder, ButtonBuilder } from '@discordjs/builders';
 import ky from 'ky';
 
@@ -14,17 +24,20 @@ export default {
     if (request.method === 'GET') {
       return new Response(`👋 ${env.DISCORD_APPLICATION_ID}`);
     }
-    const { isValid, interaction } = await verifyDiscordRequest(
+    const { isValid, interaction } = (await verifyDiscordRequest(
       request,
       env,
-    ) as { isValid: boolean; interaction: APIInteraction }
+    )) as { isValid: boolean; interaction: APIInteraction };
     if (!isValid || !interaction) {
       return new Response('Bad request signature.', { status: 401 });
     }
     if (interaction.type === InteractionType.Ping) {
       return Response.json({ type: InteractionResponseType.Pong });
     }
-    if (interaction.type === InteractionType.ApplicationCommand && interaction.data.type === ApplicationCommandType.ChatInput) {
+    if (
+      interaction.type === InteractionType.ApplicationCommand &&
+      interaction.data.type === ApplicationCommandType.ChatInput
+    ) {
       // Most user commands will come as `APPLICATION_COMMAND`.
       interaction as APIMessageApplicationCommandInteraction;
 
@@ -33,41 +46,50 @@ export default {
       }
 
       const guildId = interaction.guild_id;
-      const option = interaction.data.options ? interaction.data.options[0] : null;
+      const option = interaction.data.options
+        ? interaction.data.options[0]
+        : null;
       const message = isValidOption(option) ? option.value : 'No message';
 
       // get role data
-      const guildData: APIGuild[] = await ky.get(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
-            }
-          }).json();
+      const guildData: APIGuild[] = await ky
+        .get(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bot ${env.DISCORD_TOKEN}`,
+          },
+        })
+        .json();
 
-      const buttons = interaction.data.options?.filter((option) => option.type === ApplicationCommandOptionType.Role)
+      const buttons = interaction.data.options
+        ?.filter((option) => option.type === ApplicationCommandOptionType.Role)
         .map((option) => {
-          const optionValue = isValidOption(option) ? option.value : 'No Role Value'
+          const optionValue = isValidOption(option)
+            ? option.value
+            : 'No Role Value';
 
           const roleName = guildData.filter((role) => {
-            role.id === optionValue
+            role.id === optionValue;
           })[0].name;
           return new ButtonBuilder()
             .setCustomId(optionValue)
             .setLabel(roleName)
             .setStyle(ButtonStyle.Primary);
         });
-      
+
       return Response.json({
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
           content: message,
           components: [
-            new ActionRowBuilder().addComponents(buttons ? buttons : []).toJSON(),
+            new ActionRowBuilder()
+              .addComponents(buttons ? buttons : [])
+              .toJSON(),
           ],
         },
       });
     }
-    if(interaction.type === InteractionType.MessageComponent) {
+    if (interaction.type === InteractionType.MessageComponent) {
       // Grant and Remove role
       interaction as APIMessageComponentInteraction;
 
@@ -78,14 +100,17 @@ export default {
 
       // if not, grant the role
       try {
-        if(!interaction.member?.roles.includes(roleId)) {
+        if (!interaction.member?.roles.includes(roleId)) {
           // grant the role
-          await ky.put(`https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
-            }
-          });
+          await ky.put(
+            `https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${env.DISCORD_TOKEN}`,
+              },
+            },
+          );
 
           return Response.json({
             type: InteractionResponseType.ChannelMessageWithSource,
@@ -96,12 +121,15 @@ export default {
           });
         } else {
           // remove the role
-          await ky.delete(`https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bot ${env.DISCORD_TOKEN}`,
-            }
-          });
+          await ky.delete(
+            `https://discord.com/api/v10/guilds/${guildId}/members/${user?.id}/roles/${roleId}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${env.DISCORD_TOKEN}`,
+              },
+            },
+          );
           return Response.json({
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
