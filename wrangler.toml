@@ -1,4 +1,4 @@
-name = "discord-chatbot"
+name = "discord-role-bot"
 main = "./src/server.ts"
 compatibility_date="2024-04-04"
 
