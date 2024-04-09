@@ -7,7 +7,7 @@ import {
   ButtonStyle,
   InteractionType,
   InteractionResponseType,
-  APIGuild,
+  APIRole,
   ApplicationCommandOptionType,
 } from 'discord-api-types/v10';
 import { ActionRowBuilder, ButtonBuilder } from '@discordjs/builders';
@@ -52,7 +52,7 @@ export default {
       const message = isValidOption(option) ? option.value : 'No message';
 
       // get role data
-      const guildData: APIGuild[] = await ky
+      const guildData: APIRole[] = await ky
         .get(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
           headers: {
             'Content-Type': 'application/json',
@@ -61,33 +61,60 @@ export default {
         })
         .json();
 
-      const buttons = interaction.data.options
-        ?.filter((option) => option.type === ApplicationCommandOptionType.Role)
-        .map((option) => {
-          const optionValue = isValidOption(option)
-            ? option.value
-            : 'No Role Value';
+      console.log(interaction);
+      console.log(guildData);
 
-          const roleName = guildData.filter(
-            (role) => role.id === optionValue,
-          )[0].name;
-          return new ButtonBuilder()
-            .setCustomId(optionValue)
-            .setLabel(roleName)
-            .setStyle(ButtonStyle.Primary);
+      // if has higher role
+      const interactionUserRolePosition =
+        interaction.member?.roles
+          .map(
+            (role) =>
+              guildData.filter((guildRole) => guildRole.id === role)[0]
+                .position,
+          )
+          .sort((a, b) => b - a)[0] ?? 0;
+      const botRolePosition = guildData.filter(
+        (role) => role.tags?.bot_id == env.DISCORD_APPLICATION_ID,
+      )[0].position;
+      if (interactionUserRolePosition >= botRolePosition) {
+        const buttons = interaction.data.options
+          ?.filter(
+            (option) => option.type === ApplicationCommandOptionType.Role,
+          )
+          .map((option) => {
+            const optionValue = isValidOption(option)
+              ? option.value
+              : 'No Role Value';
+
+            const roleName = guildData.filter(
+              (role) => role.id === optionValue,
+            )[0].name;
+            return new ButtonBuilder()
+              .setCustomId(optionValue)
+              .setLabel(roleName)
+              .setStyle(ButtonStyle.Primary);
+          });
+
+        return Response.json({
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            content: message,
+            components: [
+              new ActionRowBuilder()
+                .addComponents(buttons ? buttons : [])
+                .toJSON(),
+            ],
+          },
         });
-
-      return Response.json({
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: message,
-          components: [
-            new ActionRowBuilder()
-              .addComponents(buttons ? buttons : [])
-              .toJSON(),
-          ],
-        },
-      });
+      } else {
+        return Response.json({
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            content: 'You do not have permission to use this command.',
+            flags: 64,
+          },
+        });
+      }
     }
     if (interaction.type === InteractionType.MessageComponent) {
       // Grant and Remove role
