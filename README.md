@@ -1,12 +1,11 @@
-##  Discord AI BOT on cloudflare-workers
+# Discord Role Bot on cloudflare-workers
 
 - TypeScript
-- Claude3 API
 - cloudflare workers
 
-## Customize
-
-Edit `const SYSTEM_PROMPT = ...` in [src/ai.ts](src/ai.ts)
+## Image
+![DIscord app screen, /create-set-role-message message:message role1:@role](https://github.com/Hashory/discord-grant-role-bot/assets/89839285/479cb51e-d802-4bd0-b6a6-a55c7124f9c0)
+![DIscord app screen, bot message, This button click to grant or remove role, @role](https://github.com/Hashory/discord-grant-role-bot/assets/89839285/a1f12717-0f3c-48a1-b058-2194ee7f182c)
 
 ## Setup
 
@@ -14,9 +13,9 @@ Edit `const SYSTEM_PROMPT = ...` in [src/ai.ts](src/ai.ts)
 $ pnpm install
 $ cp example.dev.vars .dev.vars
 
-# update commands
-$ pnpm tsm script/builder.ts # generate src/commands.json
-$ pnpm tsm script/register.ts
+# update commands (It's easy with deno)
+$ deno run script/builder.ts # generate src/commands.json
+$ deno run script/register.ts
 
 # edit .dev.vars and set for production
 $ pnpm wrangler secret put DISCORD_APPLICATION_ID
@@ -28,14 +27,10 @@ $ pnpm wrangler secret put ANTHROPIC_API_KEY
 $ pnpm wrangler deploy
 ```
 
-## TODO
+## Thanks
 
-- [ ] short memory
-- [ ] text to img
-- [ ] types
-- [ ] test
-- [ ] ci release
-
+- [discord-claude-bot](https://github.com/mizchi/discord-claude-bot)
+- [Cloudflare worker example app](https://github.com/discord/cloudflare-sample-app)
 ---
 
 # Cloudflare worker example app
