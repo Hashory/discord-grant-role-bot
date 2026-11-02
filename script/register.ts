@@ -13,7 +13,7 @@ dotenv.config({ path: '.dev.vars' });
 const token = process.env.DISCORD_TOKEN;
 const applicationId = process.env.DISCORD_APPLICATION_ID;
 
-console.log('Registering commands with token:', applicationId, token);
+console.log('Registering commands for application:', applicationId);
 
 if (!token) {
   throw new Error('The DISCORD_TOKEN environment variable is required.');

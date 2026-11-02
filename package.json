@@ -10,34 +10,40 @@
     "dev": "wrangler dev src/server.ts",
     "ngrok": "ngrok http 8787",
     "test": "c8 mocha test",
-    "fix": "eslint --fix '**/*.js'",
-    "lint": "eslint '**/*.js'",
-    "register": "node src/register.js"
+    "fix": "eslint --fix .",
+    "lint": "eslint .",
+    "register": "node script/register.ts",
+    "deploy": "wrangler deploy",
+    "build:commands": "node script/builder.ts"
   },
   "keywords": [],
   "author": "Hashory",
   "license": "MIT",
   "dependencies": {
-    "@discordjs/builders": "^1.7.0",
-    "discord-interactions": "^4.0.0",
-    "discord.js": "^14.14.1",
-    "itty-router": "^4.0.13",
-    "ky": "^1.2.3"
+    "@discordjs/builders": "^1.14.1",
+    "discord-interactions": "^4.4.0",
+    "discord.js": "^14.27.0",
+    "ky": "^2.2.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240312.0",
-    "c8": "^10.1.2",
-    "chai": "^5.0.0",
-    "discord-api-types": "^0.37.73",
-    "dotenv": "^16.0.3",
-    "eslint": "^9.5.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.0",
-    "mocha": "^10.2.0",
-    "ngrok": "^5.0.0-beta.2",
-    "prettier": "^3.0.1",
-    "sinon": "^18.0.0",
-    "typescript": "^5.4.4",
-    "wrangler": "^3.0.1"
-  }
+    "@cloudflare/workers-types": "^5.20261026.1",
+    "@eslint/js": "^10.0.1",
+    "c8": "^12.0.0",
+    "chai": "^6.3.0",
+    "discord-api-types": "^0.38.57",
+    "dotenv": "^18.0.9",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "globals": "^17.13.0",
+    "mocha": "^12.0.3",
+    "prettier": "^3.9.10",
+    "sinon": "^22.1.0",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.152.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.28.0"
 }

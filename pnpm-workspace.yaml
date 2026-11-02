@@ -1,0 +1,12 @@
+# Supply-chain hardening
+# Only install package versions that have been published for at least 7 days
+minimumReleaseAge: 10080
+# Only allow install scripts for packages that genuinely need them
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - sharp
+
+overrides:
+  # GHSA advisories in wrangler > miniflare > undici (dev only)
+  undici@>=7.0.0 <7.30.1: ^7.30.1

@@ -99,10 +99,10 @@ Then navigate to its directory and install dependencies:
 
 ```
 cd cloudflare-sample-app
-npm install
+pnpm install
 ```
 
-> ⚙️ The dependencies in this project require at least v18 of [Node.js](https://nodejs.org/en/)
+> ⚙️ The dependencies in this project require at least v22 of [Node.js](https://nodejs.org/en/) and [pnpm](https://pnpm.io/) v10
 
 ### Local configuration
 
@@ -117,7 +117,7 @@ Rename `example.dev.vars` to `.dev.vars`, and make sure to set each variable.
 The following command only needs to be run once:
 
 ```
-$ npm run register
+$ pnpm run register
 ```
 
 ### Run app
@@ -125,15 +125,17 @@ $ npm run register
 Now you should be ready to start your server:
 
 ```
-$ npm run dev
+$ pnpm run dev
 ```
 
 ### Setting up ngrok
 
 When a user types a slash command, Discord will send an HTTP request to a given endpoint. During local development this can be a little challenging, so we're going to use a tool called `ngrok` to create an HTTP tunnel.
 
+> ℹ️ `ngrok` is no longer bundled as an npm dependency. [Install the ngrok CLI](https://ngrok.com/download) separately before running the command below.
+
 ```
-$ npm run ngrok
+$ pnpm run ngrok
 ```
 
 ![forwarding](https://user-images.githubusercontent.com/534619/157511497-19c8cef7-c349-40ec-a9d3-4bc0147909b0.png)
@@ -146,7 +148,7 @@ This is the process we'll use for local testing and development. When you've pub
 
 ## Deploying app
 
-This repository is set up to automatically deploy to Cloudflare Workers when new changes land on the `main` branch. To deploy manually, run `npm run publish`, which uses the `wrangler publish` command under the hood. Publishing via a GitHub Action requires obtaining an [API Token and your Account ID from Cloudflare](https://developers.cloudflare.com/workers/wrangler/cli-wrangler/authentication/#generate-tokens). These are stored [as secrets in the GitHub repository](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository), making them available to GitHub Actions. The following configuration in `.github/workflows/ci.yaml` demonstrates how to tie it all together:
+This repository is set up to automatically deploy to Cloudflare Workers when new changes land on the `main` branch. To deploy manually, run `pnpm run deploy`, which uses the `wrangler deploy` command under the hood. Publishing via a GitHub Action requires obtaining an [API Token and your Account ID from Cloudflare](https://developers.cloudflare.com/workers/wrangler/cli-wrangler/authentication/#generate-tokens). These are stored [as secrets in the GitHub repository](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository), making them available to GitHub Actions. The following configuration in `.github/workflows/ci.yaml` demonstrates how to tie it all together:
 
 ```yaml
 release:
@@ -154,15 +156,18 @@ release:
   runs-on: ubuntu-latest
   needs: [test, lint]
   steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
+    - uses: actions/checkout@v7
       with:
-        node-version: 18
-    - run: npm install
-    - run: npm run publish
+        persist-credentials: false
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+    - run: pnpm install --frozen-lockfile
+    - run: pnpm run deploy
       env:
-        CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-        CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
 ```
 
 ### Storing secrets

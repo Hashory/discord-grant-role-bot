@@ -4,7 +4,16 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          ["version-update:semver-patch", "version-update:semver-minor"]
+    # Wait before proposing freshly published versions (supply-chain protection).
+    # Security updates are not affected by this and are opened immediately.
+    cooldown:
+      default-days: 7
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
